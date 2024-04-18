@@ -1,0 +1,77 @@
+```
+import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:device_info/device_info.dart';
+
+class HomePage extends StatefulWidget {
+  const HomePage({Key? key}) : super(key: key);
+
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late Future<String> _deviceIdFuture;
+  late String _deviceID = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _deviceIdFuture = _getDeviceId();
+  }
+
+  Future<String> _getDeviceId() async {
+    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    late String deviceId;
+    await Future.delayed(Duration.zero); // Ensuring we're after initState
+    deviceId = Theme.of(context).platform == TargetPlatform.android
+        ? (await deviceInfo.androidInfo).androidId
+        : (await deviceInfo.iosInfo).identifierForVendor;
+    setState(() {
+      _deviceID = deviceId;
+    });
+    return deviceId;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Builder(
+          builder: (context) {
+            if (_deviceID.isNotEmpty) {
+              return Text(
+                'Visitor Viewer - Device ID: $_deviceID',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white,
+                  fontSize: 20,
+                ),
+              );
+            } else {
+              return const Text('Visitor Viewer');
+            }
+          },
+        ),
+        backgroundColor: Colors.blueAccent,
+      ),
+      body: FutureBuilder<String>(
+        future: _deviceIdFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          } else {
+            String deviceId = snapshot.data ?? '';
+            return WebView(
+              initialUrl: 'http://localhost:3000/mobile-upload-images?deviceId=$deviceId',
+              javascriptMode: JavascriptMode.unrestricted,
+            );
+          }
+        },
+      ),
+    );
+  }
+}
+```
